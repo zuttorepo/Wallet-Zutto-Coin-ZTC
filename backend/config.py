@@ -1,0 +1,4 @@
+RPC_USER = "user"
+RPC_PASS = "pass"
+RPC_PORT = 8332
+RPC_HOST = "127.0.0.1"
