@@ -34,7 +34,6 @@ window.onload = async () => {
   if (saved) {
     render(saved);
     await manualSync();
-    setInterval(manualSync, 5000); // Auto-sync tiap 5 detik
   }
 
   // File input untuk restore
