@@ -17,7 +17,7 @@ window.onload = async () => {
   document.getElementById("genWallet").onclick = async () => {
     const wallet = await Wallet.generateWallet();
     render(wallet);
-    await manualSync(); // langsung sync setelah generate
+    await manualSync();
   };
 
   document.getElementById("importBtn").onclick = async () => {
@@ -30,21 +30,19 @@ window.onload = async () => {
     }
   };
 
-  // Cek dan render wallet saat load
   const saved = Wallet.getWallet();
   if (saved) {
     render(saved);
-    await manualSync(); // Auto-sync saat load
-    setInterval(manualSync, 5000); // Auto-sync setiap 5 detik
+    await manualSync();
+    setInterval(manualSync, 5000); // Auto-sync tiap 5 detik
   }
 
-  // Setup event listener untuk restore
+  // File input untuk restore
   const fileInput = document.createElement("input");
   fileInput.type = "file";
   fileInput.style.display = "none";
   fileInput.addEventListener("change", restoreWallet);
   document.body.appendChild(fileInput);
-
   window.triggerRestore = () => fileInput.click();
 };
 
@@ -89,11 +87,9 @@ async function manualSync() {
   if (!wallet) return;
 
   try {
-    // Simulasi data dari node
-    const fakeBalance = (Math.random() * 10).toFixed(4);
-    document.getElementById("balance").textContent = `Balance: ${fakeBalance}`;
+    await fetchBalance(wallet.address);
 
-    // Simulasi histori dummy
+    // Dummy histori (boleh diganti dengan fetch dari /history)
     const tbody = document.getElementById("tx-body");
     tbody.innerHTML = "";
     for (let i = 0; i < 3; i++) {
@@ -103,10 +99,25 @@ async function manualSync() {
     }
   } catch (e) {
     console.error("Sync error:", e);
-    alert("❌ Gagal sync (simulasi)");
+    alert("❌ Gagal sync");
   }
 }
 
+async function fetchBalance(address) {
+  try {
+    const res = await fetch(`http://localhost:3000/balance/${address}`, {
+      headers: {
+        'x-api-key': '99b97c92848f4cc2a9910b50519efe43'
+      }
+    });
+    if (!res.ok) throw new Error("Gagal fetch balance");
+    const data = await res.json();
+    document.getElementById("balance").innerText = `Balance: ${data.balance} ZTC`;
+  } catch (e) {
+    document.getElementById("balance").innerText = "Balance: Error";
+    console.error(e);
+  }
+}
 
 async function getFaucet() {
   const wallet = Wallet.getWallet();
@@ -166,14 +177,4 @@ async function restoreWallet(event) {
     }
   };
   reader.readAsText(file);
-}
-
-async function fetchBalance(address) {
-  const res = await fetch(`http://localhost:3000/balance/${address}`, {
-    headers: {
-      'x-api-key': '99b97c92848f4cc2a9910b50519efe43'
-    }
-  });
-  const data = await res.json();
-  document.getElementById("balance").innerText = data.balance + " ZTC";
 }
