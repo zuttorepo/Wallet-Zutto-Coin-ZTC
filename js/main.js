@@ -88,29 +88,25 @@ async function manualSync() {
   const wallet = Wallet.getWallet();
   if (!wallet) return;
 
-  const nodeURL = document.getElementById("rpc-url")?.value || location.origin;
   try {
-    const res = await fetch(`${nodeURL}/wallet/${wallet.address}`);
-    if (!res.ok) throw new Error("Node response not OK");
-    const data = await res.json();
+    // Simulasi data dari node
+    const fakeBalance = (Math.random() * 10).toFixed(4);
+    document.getElementById("balance").textContent = `Balance: ${fakeBalance}`;
 
-    const balEl = document.getElementById("balance");
-    if (balEl) balEl.textContent = `Balance: ${data.balance}`;
-
+    // Simulasi histori dummy
     const tbody = document.getElementById("tx-body");
-    if (tbody && data.history) {
-      tbody.innerHTML = "";
-      data.history.forEach(tx => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${tx.desc}</td><td>${tx.amount}</td><td>${tx.time}</td>`;
-        tbody.appendChild(tr);
-      });
+    tbody.innerHTML = "";
+    for (let i = 0; i < 3; i++) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>Sim Tx #${i + 1}</td><td>${(Math.random() * 2).toFixed(3)}</td><td>${new Date().toLocaleTimeString()}</td>`;
+      tbody.appendChild(tr);
     }
   } catch (e) {
     console.error("Sync error:", e);
-    alert("❌ Gagal sync dengan node");
+    alert("❌ Gagal sync (simulasi)");
   }
 }
+
 
 async function getFaucet() {
   const wallet = Wallet.getWallet();
