@@ -167,3 +167,13 @@ async function restoreWallet(event) {
   };
   reader.readAsText(file);
 }
+
+async function fetchBalance(address) {
+  const res = await fetch(`http://localhost:3000/balance/${address}`, {
+    headers: {
+      'x-api-key': '99b97c92848f4cc2a9910b50519efe43'
+    }
+  });
+  const data = await res.json();
+  document.getElementById("balance").innerText = data.balance + " ZTC";
+}
