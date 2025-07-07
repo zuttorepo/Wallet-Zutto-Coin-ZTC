@@ -105,11 +105,11 @@ async function manualSync() {
 
 async function fetchBalance(address) {
   try {
-    const res = await fetch(`http://localhost:3000/balance/${address}`, {
-      headers: {
-        'x-api-key': '99b97c92848f4cc2a9910b50519efe43'
-      }
-    });
+const res = await fetch(`https://ztc-node-rpc.onrender.com/balance/${address}`, {
+  headers: {
+    'x-api-key': '99b97c92848f4cc2a9910b50519efe43'
+  }
+});
     if (!res.ok) throw new Error("Gagal fetch balance");
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance} ZTC`;
