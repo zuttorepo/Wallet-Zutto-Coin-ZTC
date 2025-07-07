@@ -21,3 +21,23 @@ const Storage = (() => {
     saveWallet,
   };
 })();
+const Storage = {
+  getWallets: () => {
+    return JSON.parse(localStorage.getItem("wallets") || "[]");
+  },
+  saveWallets: (wallets) => {
+    localStorage.setItem("wallets", JSON.stringify(wallets));
+  },
+  setCurrentIndex: (index) => {
+    localStorage.setItem("currentIndex", index);
+  },
+  getCurrentIndex: () => {
+    return parseInt(localStorage.getItem("currentIndex") || "0");
+  },
+  saveWallet: (wallet) => {
+    const wallets = Storage.getWallets();
+    wallets.push(wallet);
+    Storage.saveWallets(wallets);
+    Storage.setCurrentIndex(wallets.length - 1);
+  }
+};
