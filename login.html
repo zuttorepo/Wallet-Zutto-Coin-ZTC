@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login Zuttocoin</title>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: #14100b;
+      color: #e0b64a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .form-box {
+      background: #1a150f;
+      padding: 2rem;
+      border-radius: 10px;
+      border: 2px solid #e0b64a;
+      box-shadow: 0 0 10px #e0b64a88;
+      text-align: center;
+      width: 300px;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.6rem;
+      margin: 0.6rem 0;
+      border-radius: 6px;
+      border: 1px solid #e0b64a55;
+      background: #2a1f10;
+      color: #f5d77a;
+    }
+
+    .btn {
+      background: linear-gradient(to right, #a67c00, #e0b64a);
+      border: none;
+      color: #14100b;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      font-weight: bold;
+      margin-top: 1rem;
+    }
+
+    .btn:hover {
+      background: linear-gradient(to right, #f5d77a, #e0b64a);
+    }
+
+    .link {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .link a {
+      color: #f5d77a;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-box">
+  <img src="logo.png" alt="Logo" style="width: 80px; height: 80px; border-radius: 10%;" />
+  <h2>🔐 Login Wallet</h2>
+  <input type="text" id="username" placeholder="Username or Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button class="btn" onclick="login()">Login</button>
+  <div class="link">
+    Belum punya akun? <a href="register.html">Daftar di sini</a>
+  </div>
+</div>
+
+<script>
+  function login() {
+    const u = document.getElementById("username").value.trim();
+    const p = document.getElementById("password").value;
+    const saved = JSON.parse(localStorage.getItem("user") || "{}");
+
+    if (u === saved.username && p === saved.password) {
+      alert("✅ Login berhasil!");
+      location.href = "index.html";
+    } else {
+      alert("❌ Username atau password salah!");
+    }
+  }
+</script>
+
+</body>
+</html>
