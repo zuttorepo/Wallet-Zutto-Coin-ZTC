@@ -58,13 +58,12 @@
 </head>
 <body>
   <div class="wrapper">
-   <h1 style="display: flex; align-items: center; gap: 10px;">
-  <img src="https://github.com/zuttorepo/Wallet_Zutto_Coin_ZTC/blob/main/logo.png?raw=true" alt="Logo" style="width: 100px; height: 100px; border-radius: 50%;" />
-  Zuttocoin Wallet
-</h1>
+    <h1 style="display: flex; align-items: center; gap: 10px;">
+      <img src="https://github.com/zuttorepo/Wallet_Zutto_Coin_ZTC/blob/main/logo.png?raw=true" alt="Logo" style="width: 100px; height: 100px; border-radius: 50%;" />
+      Zuttocoin Wallet
+    </h1>
 
-
-<input type="file" id="restoreFile" style="display:none" onchange="restoreWallet(event)">
+    <input type="file" id="restoreFile" style="display:none" onchange="restoreWallet(event)">
 
     <div id="address"></div>
     <div class="secret" id="wif"></div>
@@ -80,7 +79,6 @@
       <button class="btn" onclick="manualSync()">🔁 Sync</button>
       <button class="btn" onclick="getFaucet()">💸 Get Test ZTC</button>
       <button class="btn" onclick="logout()">🔓 Logout</button>
-
     </div>
 
     <div style="margin-top:1rem;">
@@ -99,44 +97,31 @@
 
     <!-- QR SCAN -->
     <div id="camera-preview" style="display:none;">
-    <div id="reader" style="width:100%;"></div>
+      <div id="reader" style="width:100%;"></div>
     </div>
-
   </div>
 
   <!-- LIBRARY -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-  <!-- SCRIPT ORDER PENTING -->
+  <!-- ✅ GABUNGAN ALL JS DALAM SATU -->
+  <script src="main.js"></script>
 
+  <!-- ✅ CEK LOGIN -->
+  <script>
+    function logout() {
+      if (confirm("Yakin ingin logout?")) {
+        localStorage.removeItem("user");
+        window.location.href = "login.html";
+      }
+    }
 
-<script src="js/storage.js"></script>
-<script src="js/wallet.js"></script>
-<script src="js/qrcode.js"></script>
-<script src="js/scanner.js"></script>
-<script src="js/tx.js"></script>
-<script src="js/main.js"></script>
-  
-<script type="module" src="public/main.js"></script>
-
-<script>
-  function logout() {
-    if (confirm("Yakin ingin logout?")) {
-      localStorage.removeItem("user");
+    const user = localStorage.getItem("user");
+    if (!user) {
+      alert("⚠️ Anda belum login.");
       window.location.href = "login.html";
     }
-  }
-</script>
-<script>
-
-  // Cek apakah user sudah login
-  const user = localStorage.getItem("user");
-  if (!user) {
-    alert("⚠️ Anda belum login.");
-    window.location.href = "login.html";
-  }
-</script>
-
+  </script>
 </body>
 </html>
