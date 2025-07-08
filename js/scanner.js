@@ -1,26 +1,4 @@
-const Scanner = (() => {
-  let scanner;
-
-  const start = () => {
-    const preview = document.getElementById("camera-preview");
-    preview.style.display = "block";
-    const html5QrCode = new Html5Qrcode("preview");
-
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 200 },
-      (decodedText) => {
-        document.getElementById("send-to").value = decodedText;
-        html5QrCode.stop();
-        preview.style.display = "none";
-      },
-      (errorMessage) => {}
-    );
-  };
-
-  return { start };
-})();
-
+// scanner.js
 function startQRScan() {
   const preview = document.getElementById("camera-preview");
   preview.style.display = "block";
