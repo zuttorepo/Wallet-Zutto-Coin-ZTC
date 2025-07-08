@@ -1,104 +1,100 @@
-// === Load ENV ===
-require('dotenv').config();
+// backend/server.js
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const { Pool } = require("pg");
+require("dotenv").config();
 
-// === Import Library ===
-const express = require('express');
-const { Pool } = require('pg');
-const cors = require('cors');
-
-// === Init Express App ===
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-// === Connect to PostgreSQL ===
+// PostgreSQL connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }, // penting untuk Railway
+  ssl: process.env.DATABASE_URL.includes("railway")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
-pool.connect()
-  .then(() => console.log('✅ PostgreSQL Connected'))
-  .catch(err => console.error('❌ DB Connection Error:', err));
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
 
-// === Ensure Wallet Table Exists ===
-async function ensureTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS wallets (
-      address TEXT PRIMARY KEY,
-      balance NUMERIC DEFAULT 0
-    );
-  `);
-}
-ensureTable();
+// Create table if not exists
+pool.query(`
+  CREATE TABLE IF NOT EXISTS balances (
+    address VARCHAR(100) PRIMARY KEY,
+    balance NUMERIC DEFAULT 0
+  );
+`);
 
-// === GET Balance ===
-app.get('/balance/:address', async (req, res) => {
+// === GET BALANCE ===
+app.get("/balance/:address", async (req, res) => {
   const { address } = req.params;
   try {
+    const result = await pool.query("SELECT balance FROM balances WHERE address = $1", [address]);
+    const balance = result.rows[0]?.balance || 0;
+    res.json({ balance });
+  } catch (err) {
+    console.error("GET Balance Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// === POST FAUCET ===
+app.post("/faucet", async (req, res) => {
+  const { address } = req.body;
+  try {
     const result = await pool.query(
-      'SELECT balance FROM wallets WHERE address = $1',
+      `INSERT INTO balances (address, balance)
+       VALUES ($1, 100)
+       ON CONFLICT (address) DO UPDATE SET balance = balances.balance + 100
+       RETURNING balance`,
       [address]
     );
-    if (result.rows.length > 0) {
-      res.json({ balance: result.rows[0].balance });
-    } else {
-      res.json({ balance: 0 });
-    }
-  } catch (err) {
-    res.status(500).json({ error: 'DB error' });
-  }
-});
-
-// === Faucet (Add Balance) ===
-app.post('/faucet', async (req, res) => {
-  const { address } = req.body;
-  const amount = 100; // Test faucet amount
-  try {
-    await pool.query(`
-      INSERT INTO wallets (address, balance)
-      VALUES ($1, $2)
-      ON CONFLICT (address)
-      DO UPDATE SET balance = wallets.balance + $2
-    `, [address, amount]);
-
-    const result = await pool.query('SELECT balance FROM wallets WHERE address = $1', [address]);
     res.json({ balance: result.rows[0].balance });
   } catch (err) {
-    res.status(500).json({ error: 'Faucet failed' });
+    console.error("Faucet Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-// === Send ZTC ===
-app.post('/send', async (req, res) => {
+// === POST SEND ===
+app.post("/send", async (req, res) => {
   const { from, to, amount } = req.body;
+  if (!from || !to || !amount || isNaN(amount)) {
+    return res.status(400).json({ status: "error", message: "Invalid request" });
+  }
+
   try {
-    const fromResult = await pool.query('SELECT balance FROM wallets WHERE address = $1', [from]);
-    const fromBalance = fromResult.rows[0]?.balance || 0;
+    await pool.query("BEGIN");
+
+    // Check sender balance
+    const fromRes = await pool.query("SELECT balance FROM balances WHERE address = $1 FOR UPDATE", [from]);
+    const fromBalance = parseFloat(fromRes.rows[0]?.balance || 0);
 
     if (fromBalance < amount) {
-      return res.json({ status: 'failed', message: 'Insufficient balance' });
+      await pool.query("ROLLBACK");
+      return res.json({ status: "error", message: "Insufficient balance" });
     }
 
-    await pool.query('BEGIN');
-    await pool.query('UPDATE wallets SET balance = balance - $1 WHERE address = $2', [amount, from]);
-    await pool.query(`
-      INSERT INTO wallets (address, balance)
-      VALUES ($1, $2)
-      ON CONFLICT (address)
-      DO UPDATE SET balance = wallets.balance + $2
-    `, [to, amount]);
-    await pool.query('COMMIT');
+    await pool.query("UPDATE balances SET balance = balance - $1 WHERE address = $2", [amount, from]);
+    await pool.query(
+      `INSERT INTO balances (address, balance)
+       VALUES ($1, $2)
+       ON CONFLICT (address) DO UPDATE SET balance = balances.balance + $2`,
+      [to, amount]
+    );
 
-    res.json({ status: 'success', txid: Date.now().toString() });
+    await pool.query("COMMIT");
+    res.json({ status: "success", txid: Date.now().toString() });
   } catch (err) {
-    await pool.query('ROLLBACK');
-    res.status(500).json({ status: 'failed', message: 'Send failed' });
+    await pool.query("ROLLBACK");
+    console.error("Send Error:", err);
+    res.status(500).json({ status: "error", message: "Internal server error" });
   }
 });
 
-// === Start Server ===
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Zuttocoin Node.js server running on http://localhost:${PORT}`);
+  console.log(`🚀 Zuttocoin server running at http://localhost:${PORT}`);
 });
