@@ -208,12 +208,24 @@ function startQRScan() {
 }
 
 // === Restore Wallet on Reload ===
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const savedAddr = localStorage.getItem("ztc_address");
   const savedWif = localStorage.getItem("ztc_wif");
-  if (savedAddr) {
+
+  if (savedAddr && savedWif) {
+    const jwk = JSON.parse(atob(savedWif));
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign"]
+    );
+    const rawKey = await crypto.subtle.exportKey("raw", key);
+    const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
+
     document.getElementById("address").innerText = savedAddr;
-    document.getElementById("wif").innerText = savedWif || "";
+    document.getElementById("wif").innerText = hexKey;
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(savedAddr)}`;
     showQRCode(savedAddr, "qrcode");
   }
