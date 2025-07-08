@@ -199,8 +199,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(savedAddr)}`;
     showQRCode(savedAddr, "qrcode");
     manualSync();
-  }
-});
+ });
 
 // === Generate Wallet Button ===
 document.getElementById("genWallet").addEventListener("click", generateWallet);
