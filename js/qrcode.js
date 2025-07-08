@@ -1,5 +1,5 @@
 // qrcode.js
-const QRCode = {
+const QRTool = {
   generate(el, text) {
     el.innerHTML = "";
     new QRCode(el, {
