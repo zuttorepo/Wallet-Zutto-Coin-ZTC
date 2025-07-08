@@ -1,41 +1,47 @@
-// main.js (versi lengkap dengan ECDSA + Web Crypto)
+// === Generate ZTC Address ===
+function generateZTCAddress() {
+  return "ZTC" + crypto.getRandomValues(new Uint32Array(1))[0].toString(16).toUpperCase();
+}
 
-// === Generate Wallet with Web Crypto API ===
-async function generateZTCWallet() {
-  const keyPair = await window.crypto.subtle.generateKey(
-    {
-      name: "ECDSA",
-      namedCurve: "P-256"
-    },
+// === Generate Key (ECDSA P-256) ===
+async function generateWallet() {
+  const keyPair = await crypto.subtle.generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
     true,
     ["sign", "verify"]
   );
 
-  const rawPubKey = await window.crypto.subtle.exportKey("raw", keyPair.publicKey);
-  const pubHex = Array.from(new Uint8Array(rawPubKey)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const rawKey = await crypto.subtle.exportKey("raw", keyPair.privateKey);
+  const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
+  const jwk = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
+  const base64JWK = btoa(JSON.stringify(jwk));
 
-  const hash = CryptoJS.SHA256(CryptoJS.enc.Hex.parse(pubHex)).toString();
-  const address = "ZTC" + hash.substring(0, 36).toUpperCase();
+  const address = generateZTCAddress();
 
-  const privJWK = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
-  const wif = btoa(JSON.stringify(privJWK));
+  document.getElementById("address").innerText = address;
+  document.getElementById("wif").innerText = hexKey;
+  document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(address)}`;
+  showQRCode(address, "qrcode");
 
-  return { address, wif };
+  localStorage.setItem("ztc_address", address);
+  localStorage.setItem("ztc_wif", base64JWK);
+  manualSync();
 }
 
-// === QR Code ===
+// === Show QR ===
 function showQRCode(text, elementId) {
-  const qrcodeContainer = document.getElementById(elementId);
-  qrcodeContainer.innerHTML = "";
-  new QRCode(qrcodeContainer, { text, width: 128, height: 128 });
+  const container = document.getElementById(elementId);
+  container.innerHTML = "";
+  new QRCode(container, { text, width: 128, height: 128 });
 }
 
-// === Local Balance ===
-function saveLocalBalance(address, balance) {
-  if (address) localStorage.setItem(`balance_${address}`, balance);
-}
+// === Load & Save Local Balance ===
 function loadLocalBalance(address) {
   return localStorage.getItem(`balance_${address}`) || 0;
+}
+
+function saveLocalBalance(address, balance) {
+  if (address) localStorage.setItem(`balance_${address}`, balance);
 }
 
 // === Faucet ===
@@ -47,52 +53,53 @@ async function getFaucet() {
     const res = await fetch("http://localhost:3000/faucet", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address })
+      body: JSON.stringify({ address }),
     });
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
   } catch {
+    const local = loadLocalBalance(address);
     alert("🟡 Server offline. Menampilkan data lokal.");
-    const bal = loadLocalBalance(address);
-    document.getElementById("balance").innerText = `Balance: ${bal}`;
+    document.getElementById("balance").innerText = `Balance: ${local}`;
   }
 }
 
-// === Manual Sync ===
+// === Sync Manual ===
 async function manualSync() {
   const address = document.getElementById("address").innerText;
+  if (!address) return;
   try {
     const res = await fetch(`http://localhost:3000/balance/${address}`);
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
+    alert("✅ Sync berhasil dari server.");
   } catch {
-    alert("🟡 Server offline. Menampilkan data lokal.");
-    const bal = loadLocalBalance(address);
-    document.getElementById("balance").innerText = `Balance: ${bal}`;
+    const local = loadLocalBalance(address);
+    document.getElementById("balance").innerText = `Balance: ${local}`;
+    alert("🟡 Server offline. Tampilkan balance lokal.");
   }
 }
 
-// === Kirim ZTC ===
+// === Send ZTC ===
 async function sendZTC() {
   const to = document.getElementById("send-to").value;
   const amount = Number(document.getElementById("send-amount").value);
   const from = document.getElementById("address").innerText;
-  const privateKey = document.getElementById("wif").innerText;
-
-  if (!to || !amount || !from || !privateKey) return alert("⚠️ Lengkapi semua data!");
+  if (!to || !amount || !from) return alert("⚠️ Lengkapi form terlebih dahulu.");
 
   try {
     const res = await fetch("http://localhost:3000/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, amount })
+      body: JSON.stringify({ from, to, amount }),
     });
     const data = await res.json();
     if (data.status === "success") {
-      alert(`🚀 Transaksi sukses! TXID: ${data.txid}`);
+      alert(`🚀 Sukses! TXID: ${data.txid}`);
       manualSync();
+
       const tbody = document.getElementById("tx-body");
       const row = document.createElement("tr");
       row.innerHTML = `<td>To: ${to}</td><td>${amount}</td><td>${new Date().toLocaleString()}</td>`;
@@ -104,126 +111,83 @@ async function sendZTC() {
     alert("🔴 Gagal kirim. Server offline.");
   }
 }
-
-// === Generate Wallet ===
-document.getElementById("wif").innerText = privateKeyHex; // ⬅️ HEX tampilkan ke user
-  const wallet = await generateZTCWallet();
-  document.getElementById("address").innerText = wallet.address;
-  document.getElementById("wif").innerText = wallet.wif;
-  document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(wallet.address)}`;
-  showQRCode(wallet.address, "qrcode");
-localStorage.setItem("ztc_address", address);
-localStorage.setItem("ztc_wif", base64PrivateJWK); // ⬅️ Simpan BASE64 ke localStorage
-  manualSync();
-});
+window.Transaction = { send: sendZTC };
 
 // === Import Wallet ===
 document.getElementById("importBtn").addEventListener("click", () => {
-  const wif = prompt("Masukkan WIF:");
-  if (!wif) return;
-  try {
-    const jwk = JSON.parse(atob(wif));
-    const hash = CryptoJS.SHA256(wif).toString();
-    const address = "ZTC" + hash.substring(0, 36).toUpperCase();
+  const base64 = prompt("Masukkan WIF (Base64):");
+  if (!base64) return;
+  localStorage.setItem("ztc_wif", base64);
+  const addr = generateZTCAddress();
+  document.getElementById("address").innerText = addr;
+  document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(addr)}`;
+  showQRCode(addr, "qrcode");
+  localStorage.setItem("ztc_address", addr);
+  document.getElementById("wif").innerText = "🔐 (loaded)";
+  manualSync();
+});
 
+// === Restore Wallet ===
+function restoreWallet(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    const data = JSON.parse(e.target.result);
+    const { address, wif: base64 } = data;
+    const jwk = JSON.parse(atob(base64));
+    const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+    const rawKey = await crypto.subtle.exportKey("raw", key);
+    const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
     document.getElementById("address").innerText = address;
-    document.getElementById("wif").innerText = wif;
+    document.getElementById("wif").innerText = hexKey;
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(address)}`;
     showQRCode(address, "qrcode");
     localStorage.setItem("ztc_address", address);
-    localStorage.setItem("ztc_wif", wif);
+    localStorage.setItem("ztc_wif", base64);
     manualSync();
-  } catch {
-    alert("❌ WIF tidak valid");
-  }
-});
+  };
+  reader.readAsText(file);
+}
 
-// === Backup ===
+// === Backup Wallet ===
 function backupWallet() {
-  const address = document.getElementById("address").innerText;
-  const base64Wif = localStorage.getItem("ztc_wif"); // Ambil BASE64-nya dari storage
-
-  const data = { address, wif: base64Wif };
+  const address = localStorage.getItem("ztc_address");
+  const wif = localStorage.getItem("ztc_wif");
+  const data = { address, wif };
   const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = "ztc-wallet-backup.json";
   a.click();
 }
 
-
-// === Restore ===
-function restoreWallet(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = async function (e) {
-    const data = JSON.parse(e.target.result);
-    const { address, wif: base64Wif } = data;
-
-    // Decode Base64 JWK ke HEX untuk ditampilkan
-    const jwk = JSON.parse(atob(base64Wif));
-    const key = await crypto.subtle.importKey(
-      "jwk",
-      jwk,
-      { name: "ECDSA", namedCurve: "P-256" },
-      true,
-      ["sign"]
-    );
-    const rawKey = await crypto.subtle.exportKey("raw", key);
-    const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
-
-    document.getElementById("address").innerText = address;
-    document.getElementById("wif").innerText = hexKey;
-    document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(address)}`;
-    showQRCode(address, "qrcode");
-
-    localStorage.setItem("ztc_address", address);
-    localStorage.setItem("ztc_wif", base64Wif);
-
-    manualSync(); // ✅ auto sync
-  };
-  reader.readAsText(file);
-}
-
-
-// === QR SCAN ===
+// === QR Scanner ===
 function startQRScan() {
   const preview = document.getElementById("camera-preview");
   preview.style.display = "block";
-  const html5QrCode = new Html5Qrcode("reader");
-  html5QrCode.start(
+  const scanner = new Html5Qrcode("reader");
+  scanner.start(
     { facingMode: "environment" },
     { fps: 10, qrbox: 250 },
     (decodedText) => {
       document.getElementById("send-to").value = decodedText;
-      html5QrCode.stop();
+      scanner.stop();
       preview.style.display = "none";
-    },
-    (err) => {}
+    }
   );
 }
 
-// === Restore Wallet on Reload ===
+// === Restore Wallet on Load ===
 window.addEventListener("DOMContentLoaded", async () => {
   const savedAddr = localStorage.getItem("ztc_address");
   const savedWif = localStorage.getItem("ztc_wif");
-
   if (savedAddr && savedWif) {
     const jwk = JSON.parse(atob(savedWif));
-    const key = await crypto.subtle.importKey(
-      "jwk",
-      jwk,
-      { name: "ECDSA", namedCurve: "P-256" },
-      true,
-      ["sign"]
-    );
+    const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
     const rawKey = await crypto.subtle.exportKey("raw", key);
     const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
-
     document.getElementById("address").innerText = savedAddr;
     document.getElementById("wif").innerText = hexKey;
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(savedAddr)}`;
@@ -231,5 +195,5 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
-// Ekspor
-window.Transaction = { send: sendZTC };
+// === Generate Wallet Button ===
+document.getElementById("genWallet").addEventListener("click", generateWallet);
