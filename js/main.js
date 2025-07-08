@@ -174,3 +174,36 @@ async function decryptData(b64, password) {
   const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
   return JSON.parse(new TextDecoder().decode(decrypted));
 }
+const fs = require("fs");
+const path = require("path");
+
+// File penyimpanan balance
+const balanceFile = path.join(__dirname, "data", "balance.json");
+
+// Load balance dari file
+function loadBalance() {
+  if (fs.existsSync(balanceFile)) {
+    const data = fs.readFileSync(balanceFile, "utf8");
+    return JSON.parse(data);
+  } else {
+    return { ztc: 0 }; // nilai default jika file belum ada
+  }
+}
+
+// Simpan balance ke file
+function saveBalance(balance) {
+  fs.writeFileSync(balanceFile, JSON.stringify(balance, null, 2), "utf8");
+}
+
+// Contoh penggunaan
+let balanceZTC = loadBalance();
+
+// Simulasi update balance
+function tambahZTC(jumlah) {
+  balanceZTC.ztc += jumlah;
+  saveBalance(balanceZTC);
+  console.log(`Balance ZTC sekarang: ${balanceZTC.ztc}`);
+}
+
+// Jalankan simulasi
+tambahZTC(10);
