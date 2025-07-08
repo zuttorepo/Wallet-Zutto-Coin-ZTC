@@ -1,4 +1,4 @@
-// === GENERATE ZTC ADDRESS ===
+// === Generate Address ZTC ===
 function generateZTCAddress() {
   return "ZTCF" + Math.random().toString(36).substring(2, 10).toUpperCase();
 }
@@ -14,7 +14,7 @@ function showQRCode(text, elementId) {
   });
 }
 
-// === Simpan ke localStorage ===
+// === Balance LocalStorage ===
 function saveLocalBalance(address, balance) {
   if (address) {
     localStorage.setItem(`balance_${address}`, balance);
@@ -47,7 +47,7 @@ async function getFaucet() {
   }
 }
 
-// === Sync Balance Manual ===
+// === Manual Sync ===
 async function manualSync() {
   const address = document.getElementById("address").innerText;
   if (!address) return alert("Wallet belum dibuat!");
@@ -80,7 +80,7 @@ async function sendZTC() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         from,
-        privateKey: "dummy",
+        privateKey: "dummy", // Ganti jika ada private key real
         to,
         amount,
       }),
@@ -89,10 +89,8 @@ async function sendZTC() {
     const data = await res.json();
     if (data.status === "success") {
       alert(`🚀 Transaksi sukses! TXID: ${data.txid}`);
-      // Sync balance ulang
       manualSync();
 
-      // Catat ke history
       const tbody = document.getElementById("tx-body");
       const row = document.createElement("tr");
       row.innerHTML = `<td>To: ${to}</td><td>${amount}</td><td>${new Date().toLocaleString()}</td>`;
@@ -113,6 +111,10 @@ document.getElementById("genWallet").addEventListener("click", () => {
   document.getElementById("wif").innerText = "";
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(addr)}`;
   showQRCode(addr, "qrcode");
+
+  // Simpan ke localStorage
+  localStorage.setItem("ztc_address", addr);
+  localStorage.setItem("ztc_wif", "");
 });
 
 // === Import Wallet ===
@@ -124,6 +126,9 @@ document.getElementById("importBtn").addEventListener("click", () => {
   document.getElementById("wif").innerText = wif;
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(addr)}`;
   showQRCode(addr, "qrcode");
+
+  localStorage.setItem("ztc_address", addr);
+  localStorage.setItem("ztc_wif", wif);
 });
 
 // === Backup ===
@@ -153,11 +158,15 @@ function restoreWallet(event) {
     document.getElementById("wif").innerText = data.wif;
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(data.address)}`;
     showQRCode(data.address, "qrcode");
+
+    // Simpan ke localStorage
+    localStorage.setItem("ztc_address", data.address);
+    localStorage.setItem("ztc_wif", data.wif);
   };
   reader.readAsText(file);
 }
 
-// === Scanner QR ===
+// === QR Scanner ===
 function startQRScan() {
   const preview = document.getElementById("camera-preview");
   preview.style.display = "block";
@@ -174,3 +183,16 @@ function startQRScan() {
     (err) => {}
   );
 }
+
+// === Restore Wallet Saat Reload ===
+window.addEventListener("DOMContentLoaded", () => {
+  const savedAddr = localStorage.getItem("ztc_address");
+  const savedWif = localStorage.getItem("ztc_wif");
+
+  if (savedAddr) {
+    document.getElementById("address").innerText = savedAddr;
+    document.getElementById("wif").innerText = savedWif || "";
+    document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(savedAddr)}`;
+    showQRCode(savedAddr, "qrcode");
+  }
+});
