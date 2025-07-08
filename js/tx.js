@@ -3,6 +3,8 @@ export const Transaction = {
     const to = document.getElementById("send-to").value;
     const amount = document.getElementById("send-amount").value;
     const from = document.getElementById("address").innerText;
+    console.log("tx.js loaded, Transaction exported");
+
 
     if (!to || !amount) return alert("Alamat tujuan & jumlah harus diisi!");
     if (!from) return alert("Alamat pengirim tidak ditemukan!");
