@@ -40,7 +40,7 @@ async function getFaucet() {
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
-  } catch (err) {
+  } catch {
     const offlineBal = loadLocalBalance(address);
     alert("🟡 Gagal klaim faucet. Gunakan data lokal.");
     document.getElementById("balance").innerText = `Balance: ${offlineBal}`;
@@ -78,12 +78,7 @@ async function sendZTC() {
     const res = await fetch("http://localhost:3000/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from,
-        privateKey: "dummy", // Ganti jika ada private key real
-        to,
-        amount,
-      }),
+      body: JSON.stringify({ from, privateKey: "dummy", to, amount }),
     });
 
     const data = await res.json();
@@ -112,9 +107,10 @@ document.getElementById("genWallet").addEventListener("click", () => {
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(addr)}`;
   showQRCode(addr, "qrcode");
 
-  // Simpan ke localStorage
   localStorage.setItem("ztc_address", addr);
   localStorage.setItem("ztc_wif", "");
+
+  manualSync(); // ✅ auto-sync setelah generate
 });
 
 // === Import Wallet ===
@@ -129,6 +125,8 @@ document.getElementById("importBtn").addEventListener("click", () => {
 
   localStorage.setItem("ztc_address", addr);
   localStorage.setItem("ztc_wif", wif);
+
+  manualSync(); // ✅ auto-sync setelah import
 });
 
 // === Backup ===
@@ -159,9 +157,10 @@ function restoreWallet(event) {
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(data.address)}`;
     showQRCode(data.address, "qrcode");
 
-    // Simpan ke localStorage
     localStorage.setItem("ztc_address", data.address);
     localStorage.setItem("ztc_wif", data.wif);
+
+    manualSync(); // ✅ sync setelah restore
   };
   reader.readAsText(file);
 }
