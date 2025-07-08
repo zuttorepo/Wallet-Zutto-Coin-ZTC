@@ -106,14 +106,14 @@ async function sendZTC() {
 }
 
 // === Generate Wallet ===
-document.getElementById("genWallet").addEventListener("click", async () => {
+document.getElementById("wif").innerText = privateKeyHex; // ⬅️ HEX tampilkan ke user
   const wallet = await generateZTCWallet();
   document.getElementById("address").innerText = wallet.address;
   document.getElementById("wif").innerText = wallet.wif;
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(wallet.address)}`;
   showQRCode(wallet.address, "qrcode");
-  localStorage.setItem("ztc_address", wallet.address);
-  localStorage.setItem("ztc_wif", wallet.wif);
+localStorage.setItem("ztc_address", address);
+localStorage.setItem("ztc_wif", base64PrivateJWK); // ⬅️ Simpan BASE64 ke localStorage
   manualSync();
 });
 
@@ -141,32 +141,54 @@ document.getElementById("importBtn").addEventListener("click", () => {
 // === Backup ===
 function backupWallet() {
   const address = document.getElementById("address").innerText;
-  const wif = document.getElementById("wif").innerText;
-  const blob = new Blob([JSON.stringify({ address, wif })], { type: "application/json" });
+  const base64Wif = localStorage.getItem("ztc_wif"); // Ambil BASE64-nya dari storage
+
+  const data = { address, wif: base64Wif };
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "ztc-wallet-backup.json";
   a.click();
 }
 
+
 // === Restore ===
 function restoreWallet(event) {
   const file = event.target.files[0];
   if (!file) return;
+
   const reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     const data = JSON.parse(e.target.result);
-    document.getElementById("address").innerText = data.address;
-    document.getElementById("wif").innerText = data.wif;
-    document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(data.address)}`;
-    showQRCode(data.address, "qrcode");
-    localStorage.setItem("ztc_address", data.address);
-    localStorage.setItem("ztc_wif", data.wif);
-    manualSync();
+    const { address, wif: base64Wif } = data;
+
+    // Decode Base64 JWK ke HEX untuk ditampilkan
+    const jwk = JSON.parse(atob(base64Wif));
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      jwk,
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["sign"]
+    );
+    const rawKey = await crypto.subtle.exportKey("raw", key);
+    const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
+
+    document.getElementById("address").innerText = address;
+    document.getElementById("wif").innerText = hexKey;
+    document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(address)}`;
+    showQRCode(address, "qrcode");
+
+    localStorage.setItem("ztc_address", address);
+    localStorage.setItem("ztc_wif", base64Wif);
+
+    manualSync(); // ✅ auto sync
   };
   reader.readAsText(file);
 }
+
 
 // === QR SCAN ===
 function startQRScan() {
