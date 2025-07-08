@@ -1,37 +1,35 @@
-// public/main.js
-import { generateZTCAddress } from "../js/main.js";
+import { generateZTCAddress } from "../js/wallet.js";
+import { showQRCode } from "../js/qrcode.js";
+import { Transaction } from "../js/tx.js";
 
-let address = localStorage.getItem("ztc_address");
+// === GENERATE WALLET ===
+document.getElementById("genWallet").addEventListener("click", () => {
+  const addr = generateZTCAddress();
+  document.getElementById("address").innerText = addr;
+  showQRCode(addr, "qrcode");
 
-// Kalau belum ada address, generate baru
-if (!address) {
-  address = generateZTCAddress();
-  localStorage.setItem("ztc_address", address);
-}
+  // Reset balance display
+  document.getElementById("balance").innerText = "Balance: 0";
+});
 
-// Tampilkan address ke UI
-document.getElementById("ztc-address").innerText = address;
+// === FAUCET CLAIM ===
+window.getFaucet = async function () {
+  const addr = document.getElementById("address").innerText;
+  if (!addr) return alert("⚠️ Wallet belum dibuat!");
 
-// Ambil saldo awal dari backend
-async function fetchBalance() {
-  const res = await fetch(`http://localhost:3000/balance/${address}`);
-  const data = await res.json();
-  document.getElementById("ztc-balance").innerText = `ZTC Balance: ${data.balance}`;
-}
+  try {
+    const res = await fetch("http://localhost:3000/faucet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: addr })
+    });
+    const data = await res.json();
+    document.getElementById("balance").innerText = `Balance: ${data.balance}`;
+  } catch (err) {
+    console.error("❌ Gagal klaim faucet:", err);
+    alert("Gagal klaim faucet. Periksa koneksi server.");
+  }
+};
 
-// Fungsi klaim faucet
-async function claimZTC() {
-  const res = await fetch("http://localhost:3000/faucet", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address })
-  });
-  const data = await res.json();
-  document.getElementById("ztc-balance").innerText = `ZTC Balance: ${data.balance}`;
-}
-
-// Event klik tombol faucet
-document.getElementById("claim-button").addEventListener("click", claimZTC);
-
-// Saat halaman pertama kali dibuka
-fetchBalance();
+// === KIRIM ZTC ===
+window.Transaction = Transaction;
