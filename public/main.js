@@ -32,4 +32,5 @@ window.getFaucet = async function () {
 };
 
 // === KIRIM ZTC ===
+console.log("Transaction object:", Transaction);
 window.Transaction = Transaction;
