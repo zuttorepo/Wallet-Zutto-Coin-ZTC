@@ -114,16 +114,21 @@ async function sendZTC() {
 window.Transaction = { send: sendZTC };
 
 // === Import Wallet ===
-document.getElementById("importBtn").addEventListener("click", () => {
+document.getElementById("importBtn").addEventListener("click", async () => {
   const base64 = prompt("Masukkan WIF (Base64):");
   if (!base64) return;
-  localStorage.setItem("ztc_wif", base64);
+  const jwk = JSON.parse(atob(base64));
+  const key = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+  const rawKey = await crypto.subtle.exportKey("raw", key);
+  const hexKey = [...new Uint8Array(rawKey)].map(b => b.toString(16).padStart(2, '0')).join('');
+
   const addr = generateZTCAddress();
   document.getElementById("address").innerText = addr;
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(addr)}`;
   showQRCode(addr, "qrcode");
   localStorage.setItem("ztc_address", addr);
-  document.getElementById("wif").innerText = "🔐 (loaded)";
+  localStorage.setItem("ztc_wif", base64);
+  document.getElementById("wif").innerText = hexKey;
   manualSync();
 });
 
@@ -173,8 +178,9 @@ function startQRScan() {
     { fps: 10, qrbox: 250 },
     (decodedText) => {
       document.getElementById("send-to").value = decodedText;
-      scanner.stop();
-      preview.style.display = "none";
+      scanner.stop().then(() => {
+        preview.style.display = "none";
+      });
     }
   );
 }
@@ -192,6 +198,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("wif").innerText = hexKey;
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(savedAddr)}`;
     showQRCode(savedAddr, "qrcode");
+    manualSync();
   }
 });
 
