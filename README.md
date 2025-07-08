@@ -1,15 +1,20 @@
-# ZuttoWalletBackend
-https://zuttorepo.github.io/Wallet_Zutto_Coin_ZTC/
-Komponen backend dan offline wallet untuk ZuttoChain (ZTC).
+# 🪙 Zuttocoin Wallet (ZTC)
 
-## Struktur
-- `backend/`: API FastAPI
-- `signer/`: Signer dengan proteksi PIN
-- `mobile_lib/`: Untuk Android bridge
-- `desktop_offline/`: GUI wallet offline
+Zuttocoin Wallet adalah dompet kripto ringan berbasis web yang memungkinkan pengguna untuk membuat, menyimpan, mengelola, dan mentransfer token ZTC (Zutto Coin). Proyek ini menggunakan frontend HTML/JS dan backend Node.js + PostgreSQL.
 
-## Jalankan
-```bash
-uvicorn backend.main:app --reload
-python desktop_offline/run_wallet.py
-```
+---
+
+## 🚀 Fitur Utama
+
+- 🔐 Generate dan import wallet (address + WIF)
+- 💸 Faucet ZTC testnet
+- 📤 Kirim ZTC antar alamat
+- 🔁 Sync balance manual
+- 📂 Backup & restore wallet
+- 🧠 Penyimpanan balance lokal (offline support)
+- 📦 Backend API dengan Express + PostgreSQL
+
+---
+
+## 🗂️ Struktur Proyek
+
