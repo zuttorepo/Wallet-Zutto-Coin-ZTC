@@ -7,8 +7,6 @@ export const Transaction = {
     if (!to || !amount) return alert("Alamat tujuan & jumlah harus diisi!");
     if (!from) return alert("Alamat pengirim tidak ditemukan!");
 
-    // Simulasi kirim
     alert(`🚀 Kirim ${amount} ZTC dari ${from} ke ${to}`);
-    // Bisa tambah logika tx / catat ke localStorage di sini
   }
 };
