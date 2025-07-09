@@ -1,34 +1,42 @@
 <?php
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit(0);
 header('Content-Type: application/json');
+
+$conn = new mysqli("sql107.infinityfree.com", "if0_39159903", "ZuttoCoinWallet", "if0_39159903_zuttocoinrpc");
+
 $data = json_decode(file_get_contents("php://input"), true);
-$from = $data['from'];
-$to = $data['to'];
+$from = $conn->real_escape_string($data['from']);
+$to = $conn->real_escape_string($data['to']);
 $amount = floatval($data['amount']);
 
-$conn = new mysqli("sql107.infinityfree.com", "if0_39159903", "ZuttoCoinWallet", "if0_39159903_XXX");
-if ($conn->connect_error) {
-  echo json_encode(["status" => "fail", "message" => "DB connection failed"]);
+if ($amount <= 0) {
+  echo json_encode(["status" => "fail", "message" => "Invalid amount"]);
   exit;
 }
 
-$conn->begin_transaction();
-
-try {
-  // Kurangi dari pengirim
-  $stmt1 = $conn->prepare("UPDATE wallets SET balance = balance - ? WHERE address = ? AND balance >= ?");
-  $stmt1->bind_param("dss", $amount, $from, $amount);
-  $stmt1->execute();
-
-  if ($stmt1->affected_rows === 0) throw new Exception("Saldo tidak cukup");
-
-  // Tambah ke penerima
-  $stmt2 = $conn->prepare("INSERT INTO wallets (address, balance) VALUES (?, ?) ON DUPLICATE KEY UPDATE balance = balance + VALUES(balance)");
-  $stmt2->bind_param("sd", $to, $amount);
-  $stmt2->execute();
-
-  $conn->commit();
-  echo json_encode(["status" => "success", "txid" => uniqid("TX")]);
-} catch (Exception $e) {
-  $conn->rollback();
-  echo json_encode(["status" => "fail", "message" => $e->getMessage()]);
+// Cek saldo
+$res = $conn->query("SELECT balance FROM wallets WHERE address = '$from'");
+if (!$res || $res->num_rows == 0) {
+  echo json_encode(["status" => "fail", "message" => "Sender not found"]);
+  exit;
 }
+$fromBalance = $res->fetch_assoc()['balance'];
+if ($fromBalance < $amount) {
+  echo json_encode(["status" => "fail", "message" => "Insufficient balance"]);
+  exit;
+}
+
+// Proses transaksi
+$conn->begin_transaction();
+$conn->query("UPDATE wallets SET balance = balance - $amount WHERE address = '$from'");
+$conn->query("INSERT INTO wallets (address, balance) VALUES ('$to', $amount)
+              ON DUPLICATE KEY UPDATE balance = balance + $amount");
+$conn->commit();
+
+$txid = substr(sha1($from . $to . $amount . microtime()), 0, 16);
+echo json_encode(["status" => "success", "txid" => $txid]);
+
+$conn->close();
