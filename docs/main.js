@@ -1,6 +1,6 @@
 // === Generate Address ZTC ===
 function generateZTCAddress() {
-  const rand = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 32).toUpperCase();
   return "ZTCF" + rand;
 }
 
