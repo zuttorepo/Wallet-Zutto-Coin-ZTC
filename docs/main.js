@@ -1,7 +1,7 @@
 import * as secp from "https://esm.sh/@noble/secp256k1";
 import { sha256 } from "https://esm.sh/@noble/hashes/sha256";
 
-const API_BASE = "https://zuttocoin.epizy.com/api"; // Ganti sesuai domain kamu
+const API_BASE = "https://zuttocoin.ct.ws/api"; // Ganti sesuai domain kamu
 
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
