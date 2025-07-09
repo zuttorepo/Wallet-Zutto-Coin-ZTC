@@ -1,5 +1,6 @@
-import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
-import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
+import * as secp from "https://esm.sh/@noble/secp256k1";
+import { sha256 } from "https://esm.sh/@noble/hashes/sha256";
+
 
 
 // Convert bytes to hex
