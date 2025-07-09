@@ -1,16 +1,15 @@
-import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
 import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
 
-// Convert Uint8Array to hex
+// Convert bytes to hex
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-// === Generate Wallet ===
+// Generate wallet: privateKey (SHA256), publicKey → address
 async function generateZTCWallet() {
   const entropy = crypto.getRandomValues(new Uint8Array(32));
   const privateKey = sha256(entropy);
   const privateKeyHex = toHex(privateKey);
 
-  const publicKey = secp.getPublicKey(privateKey);
+  const publicKey = window.secp.getPublicKey(privateKey);
   const addressHash = sha256(publicKey);
   const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
 
@@ -22,16 +21,17 @@ function showQRCode(text, elementId) {
   const container = document.getElementById(elementId);
   container.innerHTML = "";
   new QRCode(container, {
-    text: text,
+    text,
     width: 128,
     height: 128,
   });
 }
 
-// === Local Storage ===
+// === Local Balance Storage ===
 function saveLocalBalance(address, balance) {
   if (address) localStorage.setItem(`balance_${address}`, balance);
 }
+
 function loadLocalBalance(address) {
   return localStorage.getItem(`balance_${address}`) || 0;
 }
@@ -67,7 +67,7 @@ async function manualSync() {
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
-    alert("✅ Sync dari server berhasil");
+    alert("✅ Sync berhasil");
   } catch {
     const local = loadLocalBalance(address);
     document.getElementById("balance").innerText = `Balance: ${local}`;
@@ -75,7 +75,7 @@ async function manualSync() {
   }
 }
 
-// === Kirim ZTC ===
+// === Send ZTC ===
 async function sendZTC() {
   const from = document.getElementById("address").innerText;
   const to = document.getElementById("send-to").value;
@@ -108,7 +108,7 @@ async function sendZTC() {
 
 window.Transaction = { send: sendZTC };
 
-// === Generate Wallet Button ===
+// === Generate Wallet ===
 document.getElementById("genWallet").addEventListener("click", async () => {
   const { address, privateKey } = await generateZTCWallet();
   document.getElementById("address").innerText = address;
@@ -127,7 +127,7 @@ document.getElementById("importBtn").addEventListener("click", async () => {
   if (!wif || wif.length !== 64) return alert("⚠️ Private key tidak valid");
 
   const privateKey = Uint8Array.from(wif.match(/.{1,2}/g).map(h => parseInt(h, 16)));
-  const publicKey = secp.getPublicKey(privateKey);
+  const publicKey = window.secp.getPublicKey(privateKey);
   const addressHash = sha256(publicKey);
   const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
 
@@ -192,7 +192,7 @@ function startQRScan() {
   );
 }
 
-// === Restore Wallet saat reload ===
+// === Auto Load Wallet on Refresh ===
 window.addEventListener("DOMContentLoaded", () => {
   const savedAddr = localStorage.getItem("ztc_address");
   const savedWif = localStorage.getItem("ztc_wif");
@@ -205,7 +205,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// === Bind to HTML ===
+// === Global bind
 window.backupWallet = backupWallet;
 window.restoreWallet = restoreWallet;
 window.startQRScan = startQRScan;
