@@ -1,7 +1,7 @@
 import * as secp from "https://esm.sh/@noble/secp256k1";
 import { sha256 } from "https://esm.sh/@noble/hashes/sha256";
 
-const API_BASE = "https://zuttocoin.ct.ws/api"; // Ganti sesuai domain kamu
+const API_BASE = "https://zuttocoin.ct.ws/api";
 
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -29,20 +29,34 @@ function loadLocalBalance(address) {
   return localStorage.getItem(`balance_${address}`) || 0;
 }
 
+async function fetchWithFallback(url, options) {
+  try {
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error("Server error");
+    return res;
+  } catch (e) {
+    console.warn("Fallback via CORS proxy");
+    return fetch(`https://corsproxy.io/?${url}`, options);
+  }
+}
+
 async function getFaucet() {
   const address = document.getElementById("address").innerText;
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch(`${API_BASE}/faucet.php`, {
+    const res = await fetchWithFallback(`${API_BASE}/faucet.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address }),
     });
-    const data = await res.json();
+    const raw = await res.text();
+    console.log("Faucet Raw:", raw);
+    const data = JSON.parse(raw);
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
-  } catch {
+  } catch (err) {
+    console.error("Faucet Error:", err);
     const offline = loadLocalBalance(address);
     alert("🟡 Gagal klaim faucet. Gunakan data lokal.");
     document.getElementById("balance").innerText = `Balance: ${offline}`;
@@ -54,12 +68,15 @@ async function manualSync() {
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch(`${API_BASE}/balance.php?address=${address}`);
-    const data = await res.json();
+    const res = await fetchWithFallback(`${API_BASE}/balance.php?address=${address}`);
+    const raw = await res.text();
+    console.log("Sync Raw:", raw);
+    const data = JSON.parse(raw);
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
     alert("✅ Sync berhasil");
-  } catch {
+  } catch (err) {
+    console.error("Sync error:", err);
     const local = loadLocalBalance(address);
     document.getElementById("balance").innerText = `Balance: ${local}`;
     alert("🟡 Server offline. Tampilkan balance lokal.");
@@ -75,12 +92,15 @@ async function sendZTC() {
   if (!from || !to || !amount || !privateKey) return alert("⚠️ Lengkapi form transaksi.");
 
   try {
-    const res = await fetch(`${API_BASE}/send.php`, {
+    const res = await fetchWithFallback(`${API_BASE}/send.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from, privateKey, to, amount }),
     });
-    const data = await res.json();
+    const raw = await res.text();
+    console.log("Send Raw:", raw);
+    const data = JSON.parse(raw);
+
     if (data.status === "success") {
       alert(`🚀 Transaksi sukses! TXID: ${data.txid}`);
       manualSync();
@@ -91,7 +111,8 @@ async function sendZTC() {
     } else {
       alert("❌ Gagal: " + data.message);
     }
-  } catch {
+  } catch (err) {
+    console.error("Send error:", err);
     alert("🔴 Server offline. Coba lagi nanti.");
   }
 }
