@@ -1,4 +1,6 @@
+import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
 import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
+
 
 // Convert bytes to hex
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
