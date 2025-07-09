@@ -1,4 +1,4 @@
-<script type="module">
+
   import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
   import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
 
@@ -200,4 +200,4 @@
   window.restoreWallet = restoreWallet;
   window.startQRScan = startQRScan;
   window.getFaucet = getFaucet;
-</script>
+
