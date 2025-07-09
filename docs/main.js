@@ -1,8 +1,6 @@
 import * as secp from "https://esm.sh/@noble/secp256k1";
 import { sha256 } from "https://esm.sh/@noble/hashes/sha256";
 
-
-
 // Convert bytes to hex
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -12,12 +10,19 @@ async function generateZTCWallet() {
   const privateKey = sha256(entropy);
   const privateKeyHex = toHex(privateKey);
 
-  const publicKey = window.secp.getPublicKey(privateKey);
+  const publicKey = secp.getPublicKey(privateKey, false).slice(1); // pakai uncompressed tanpa prefix
   const addressHash = sha256(publicKey);
   const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
 
   return { address: ztcAddress, privateKey: privateKeyHex };
 }
+
+// Contoh penggunaan
+generateZTCWallet().then(wallet => {
+  console.log("Address:", wallet.address);
+  console.log("Private Key:", wallet.privateKey);
+});
+
 
 // === QR Code ===
 function showQRCode(text, elementId) {
