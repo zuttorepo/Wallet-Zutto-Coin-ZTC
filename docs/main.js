@@ -2,23 +2,18 @@
   import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
   import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
 
-  // Convert bytes to hex
   const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-  // Generate wallet: privateKey (SHA256), publicKey → address
   async function generateZTCWallet() {
     const entropy = crypto.getRandomValues(new Uint8Array(32));
-    const privateKey = sha256(entropy);
+    const privateKey = entropy; // valid secp256k1 key
     const privateKeyHex = toHex(privateKey);
-
     const publicKey = secp.getPublicKey(privateKey);
     const addressHash = sha256(publicKey);
     const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
-
     return { address: ztcAddress, privateKey: privateKeyHex };
   }
 
-  // === QR Code ===
   function showQRCode(text, elementId) {
     const container = document.getElementById(elementId);
     container.innerHTML = "";
@@ -29,7 +24,6 @@
     });
   }
 
-  // === Local Balance Storage ===
   function saveLocalBalance(address, balance) {
     if (address) localStorage.setItem(`balance_${address}`, balance);
   }
@@ -38,7 +32,6 @@
     return localStorage.getItem(`balance_${address}`) || 0;
   }
 
-  // === Faucet ===
   async function getFaucet() {
     const address = document.getElementById("address").innerText;
     if (!address) return alert("⚠️ Wallet belum dibuat!");
@@ -52,14 +45,14 @@
       const data = await res.json();
       document.getElementById("balance").innerText = `Balance: ${data.balance}`;
       saveLocalBalance(address, data.balance);
-    } catch {
+    } catch (err) {
+      console.error(err);
       const offline = loadLocalBalance(address);
       alert("🟡 Gagal klaim faucet. Gunakan data lokal.");
       document.getElementById("balance").innerText = `Balance: ${offline}`;
     }
   }
 
-  // === Manual Sync ===
   async function manualSync() {
     const address = document.getElementById("address").innerText;
     if (!address) return alert("⚠️ Wallet belum dibuat!");
@@ -70,14 +63,14 @@
       document.getElementById("balance").innerText = `Balance: ${data.balance}`;
       saveLocalBalance(address, data.balance);
       alert("✅ Sync dari server berhasil");
-    } catch {
+    } catch (err) {
+      console.error(err);
       const local = loadLocalBalance(address);
       document.getElementById("balance").innerText = `Balance: ${local}`;
       alert("🟡 Server offline. Tampilkan balance lokal.");
     }
   }
 
-  // === Kirim ZTC ===
   async function sendZTC() {
     const from = document.getElementById("address").innerText;
     const to = document.getElementById("send-to").value;
@@ -85,6 +78,7 @@
     const privateKey = document.getElementById("wif").innerText;
 
     if (!from || !to || !amount || !privateKey) return alert("⚠️ Lengkapi form transaksi.");
+    if (!to.startsWith("ZTCF") || to.length !== 44) return alert("⚠️ Alamat tujuan tidak valid.");
 
     try {
       const res = await fetch("http://localhost:3000/send", {
@@ -103,14 +97,14 @@
       } else {
         alert("❌ Gagal: " + data.message);
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("🔴 Server offline. Coba lagi nanti.");
     }
   }
 
   window.Transaction = { send: sendZTC };
 
-  // === Generate Wallet ===
   document.getElementById("genWallet").addEventListener("click", async () => {
     const { address, privateKey } = await generateZTCWallet();
     document.getElementById("address").innerText = address;
@@ -123,10 +117,9 @@
     manualSync();
   });
 
-  // === Import Wallet ===
   document.getElementById("importBtn").addEventListener("click", async () => {
     const wif = prompt("Masukkan Private Key (SHA256 hex):");
-    if (!wif || wif.length !== 64) return alert("⚠️ Private key tidak valid");
+    if (!wif || !/^[0-9a-f]{64}$/i.test(wif)) return alert("⚠️ Private key tidak valid");
 
     const privateKey = Uint8Array.from(wif.match(/.{1,2}/g).map(h => parseInt(h, 16)));
     const publicKey = secp.getPublicKey(privateKey);
@@ -143,7 +136,6 @@
     manualSync();
   });
 
-  // === Backup ===
   function backupWallet() {
     const address = document.getElementById("address").innerText;
     const wif = document.getElementById("wif").innerText;
@@ -156,7 +148,6 @@
     a.click();
   }
 
-  // === Restore ===
   function restoreWallet(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -176,7 +167,6 @@
     reader.readAsText(file);
   }
 
-  // === QR Scanner ===
   function startQRScan() {
     const preview = document.getElementById("camera-preview");
     preview.style.display = "block";
@@ -194,7 +184,6 @@
     );
   }
 
-  // === Restore Wallet saat reload ===
   window.addEventListener("DOMContentLoaded", () => {
     const savedAddr = localStorage.getItem("ztc_address");
     const savedWif = localStorage.getItem("ztc_wif");
@@ -207,7 +196,6 @@
     }
   });
 
-  // === Global bind for HTML
   window.backupWallet = backupWallet;
   window.restoreWallet = restoreWallet;
   window.startQRScan = startQRScan;
