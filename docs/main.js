@@ -1,8 +1,25 @@
 // === Generate Address ZTC ===
-function generateZTCAddress() {
-  const rand = Math.random().toString(36).substring(2, 32).toUpperCase();
-  return "ZTCF" + rand;
+import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
+import { sha256 } from "https://cdn.skypack.dev/@noble/hashes/sha256";
+
+async function generateZTCAddress() {
+  const privateKey = secp.utils.randomPrivateKey();
+  const privateKeyHex = secp.utils.bytesToHex(privateKey);
+  const publicKey = secp.getPublicKey(privateKey, true);
+  const hashed = sha256(publicKey);
+  const address = "ZTC" + secp.utils.bytesToHex(hashed).slice(0, 40).toUpperCase();
+
+  localStorage.setItem("ztc_privateKey", privateKeyHex);
+  localStorage.setItem("ztc_address", address);
+
+  document.getElementById("walletInfo").innerHTML = `
+    <p><b>Address:</b> ${address}</p>
+    <p><b>Private Key:</b> ${privateKeyHex}</p>
+  `;
 }
+
+window.generateZTCAddress = generateZTCAddress;
+
 
 // === QR Code ===
 function showQRCode(text, elementId) {
