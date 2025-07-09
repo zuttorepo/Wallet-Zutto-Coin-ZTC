@@ -50,7 +50,7 @@ async function getFaucet() {
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch("http://localhost:3000/faucet", {
+    const res = await fetch("https://yourname.epizy.com/api/faucet.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address }),
@@ -71,7 +71,7 @@ async function manualSync() {
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch(`http://localhost:3000/balance/${address}`);
+    const res = await fetch(`https://yourname.epizy.com/api/balance.php/${address}`);
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
@@ -93,7 +93,7 @@ async function sendZTC() {
   if (!from || !to || !amount || !privateKey) return alert("⚠️ Lengkapi form transaksi.");
 
   try {
-    const res = await fetch("http://localhost:3000/send", {
+    const res = await fetch("https://yourname.epizy.com/api/send.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from, privateKey, to, amount }),
