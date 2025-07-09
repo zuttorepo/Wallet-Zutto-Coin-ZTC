@@ -1,17 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script type="module">
-  import * as secp from "https://cdn.skypack.dev/@noble/secp256k1";
-
-  window.secp = secp; // simpan ke global supaya bisa diakses di main.js
-</script>
-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Zuttocoin Wallet</title>
 
-  <!-- Font Orbitron -->
+  <!-- Orbitron Font -->
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 
   <style>
@@ -104,17 +98,19 @@
       <tbody id="tx-body"></tbody>
     </table>
 
-    <!-- QR SCAN -->
-    <div id="camera-preview" style="display:none;">
+    <div id="camera-preview">
       <div id="reader" style="width:100%;"></div>
     </div>
   </div>
-  <!-- ✅ LIBRARY - TARUH DI BAWAH -->
 
-<script type="module" src="./main.js"></script>
+  <!-- ✅ LIBRARIES -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
+  <!-- ✅ Main App -->
+  <script type="module" src="./main.js"></script>
 
-  <!-- ✅ CEK LOGIN -->
+  <!-- ✅ Auth Check -->
   <script>
     function logout() {
       if (confirm("Yakin ingin logout?")) {
