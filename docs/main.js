@@ -1,41 +1,26 @@
 import * as secp from "https://esm.sh/@noble/secp256k1";
 import { sha256 } from "https://esm.sh/@noble/hashes/sha256";
 
-// Convert bytes to hex
+const API_BASE = "https://zuttocoin.epizy.com/api"; // Ganti sesuai domain kamu
+
 const toHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-// Generate wallet: privateKey (SHA256), publicKey → address
 async function generateZTCWallet() {
   const entropy = crypto.getRandomValues(new Uint8Array(32));
   const privateKey = sha256(entropy);
   const privateKeyHex = toHex(privateKey);
-
-  const publicKey = secp.getPublicKey(privateKey, false).slice(1); // pakai uncompressed tanpa prefix
+  const publicKey = secp.getPublicKey(privateKey, false).slice(1);
   const addressHash = sha256(publicKey);
   const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
-
   return { address: ztcAddress, privateKey: privateKeyHex };
 }
 
-// Contoh penggunaan
-generateZTCWallet().then(wallet => {
-  console.log("Address:", wallet.address);
-  console.log("Private Key:", wallet.privateKey);
-});
-
-
-// === QR Code ===
 function showQRCode(text, elementId) {
   const container = document.getElementById(elementId);
   container.innerHTML = "";
-  new QRCode(container, {
-    text,
-    width: 128,
-    height: 128,
-  });
+  new QRCode(container, { text, width: 128, height: 128 });
 }
 
-// === Local Balance Storage ===
 function saveLocalBalance(address, balance) {
   if (address) localStorage.setItem(`balance_${address}`, balance);
 }
@@ -44,13 +29,12 @@ function loadLocalBalance(address) {
   return localStorage.getItem(`balance_${address}`) || 0;
 }
 
-// === Faucet ===
 async function getFaucet() {
   const address = document.getElementById("address").innerText;
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch("https://yourname.epizy.com/api/faucet.php", {
+    const res = await fetch(`${API_BASE}/faucet.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address }),
@@ -65,13 +49,12 @@ async function getFaucet() {
   }
 }
 
-// === Manual Sync ===
 async function manualSync() {
   const address = document.getElementById("address").innerText;
   if (!address) return alert("⚠️ Wallet belum dibuat!");
 
   try {
-    const res = await fetch(`https://yourname.epizy.com/api/balance.php/${address}`);
+    const res = await fetch(`${API_BASE}/balance.php?address=${address}`);
     const data = await res.json();
     document.getElementById("balance").innerText = `Balance: ${data.balance}`;
     saveLocalBalance(address, data.balance);
@@ -83,7 +66,6 @@ async function manualSync() {
   }
 }
 
-// === Send ZTC ===
 async function sendZTC() {
   const from = document.getElementById("address").innerText;
   const to = document.getElementById("send-to").value;
@@ -93,7 +75,7 @@ async function sendZTC() {
   if (!from || !to || !amount || !privateKey) return alert("⚠️ Lengkapi form transaksi.");
 
   try {
-    const res = await fetch("https://yourname.epizy.com/api/send.php", {
+    const res = await fetch(`${API_BASE}/send.php`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from, privateKey, to, amount }),
@@ -116,40 +98,33 @@ async function sendZTC() {
 
 window.Transaction = { send: sendZTC };
 
-// === Generate Wallet ===
 document.getElementById("genWallet").addEventListener("click", async () => {
   const { address, privateKey } = await generateZTCWallet();
   document.getElementById("address").innerText = address;
   document.getElementById("wif").innerText = privateKey;
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(address)}`;
   showQRCode(address, "qrcode");
-
   localStorage.setItem("ztc_address", address);
   localStorage.setItem("ztc_wif", privateKey);
   manualSync();
 });
 
-// === Import Wallet ===
 document.getElementById("importBtn").addEventListener("click", async () => {
   const wif = prompt("Masukkan Private Key (SHA256 hex):");
   if (!wif || wif.length !== 64) return alert("⚠️ Private key tidak valid");
-
   const privateKey = Uint8Array.from(wif.match(/.{1,2}/g).map(h => parseInt(h, 16)));
-  const publicKey = window.secp.getPublicKey(privateKey);
+  const publicKey = secp.getPublicKey(privateKey, false).slice(1);
   const addressHash = sha256(publicKey);
   const ztcAddress = "ZTCF" + toHex(addressHash.slice(-20)).toUpperCase();
-
   document.getElementById("address").innerText = ztcAddress;
   document.getElementById("wif").innerText = wif;
   document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(ztcAddress)}`;
   showQRCode(ztcAddress, "qrcode");
-
   localStorage.setItem("ztc_address", ztcAddress);
   localStorage.setItem("ztc_wif", wif);
   manualSync();
 });
 
-// === Backup ===
 function backupWallet() {
   const address = document.getElementById("address").innerText;
   const wif = document.getElementById("wif").innerText;
@@ -162,11 +137,9 @@ function backupWallet() {
   a.click();
 }
 
-// === Restore ===
 function restoreWallet(event) {
   const file = event.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = function (e) {
     const data = JSON.parse(e.target.result);
@@ -174,7 +147,6 @@ function restoreWallet(event) {
     document.getElementById("wif").innerText = data.wif || "";
     document.getElementById("balance").innerText = `Balance: ${loadLocalBalance(data.address)}`;
     showQRCode(data.address, "qrcode");
-
     localStorage.setItem("ztc_address", data.address);
     localStorage.setItem("ztc_wif", data.wif);
     manualSync();
@@ -182,11 +154,9 @@ function restoreWallet(event) {
   reader.readAsText(file);
 }
 
-// === QR Scanner ===
 function startQRScan() {
   const preview = document.getElementById("camera-preview");
   preview.style.display = "block";
-
   const html5QrCode = new Html5Qrcode("reader");
   html5QrCode.start(
     { facingMode: "environment" },
@@ -200,11 +170,9 @@ function startQRScan() {
   );
 }
 
-// === Auto Load Wallet on Refresh ===
 window.addEventListener("DOMContentLoaded", () => {
   const savedAddr = localStorage.getItem("ztc_address");
   const savedWif = localStorage.getItem("ztc_wif");
-
   if (savedAddr) {
     document.getElementById("address").innerText = savedAddr;
     document.getElementById("wif").innerText = savedWif || "";
@@ -213,7 +181,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// === Global bind
 window.backupWallet = backupWallet;
 window.restoreWallet = restoreWallet;
 window.startQRScan = startQRScan;
